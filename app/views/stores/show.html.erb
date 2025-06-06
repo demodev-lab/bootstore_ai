@@ -1,0 +1,108 @@
+<div class="container mx-auto px-4 py-8">
+  <div class="mb-8">
+    <%= link_to "← 대시보드로 돌아가기", root_path, class: "text-blue-400 hover:text-blue-300 transition" %>
+  </div>
+  
+  <div class="bg-gray-800 rounded-lg p-6 mb-8">
+    <div class="flex justify-between items-start mb-4">
+      <div>
+        <h1 class="text-3xl font-bold mb-2"><%= @store.name || "Loading..." %></h1>
+        <p class="text-gray-400 mb-4"><%= @store.url %></p>
+        
+        <div class="flex gap-6 text-sm">
+          <div>
+            <span class="text-gray-400">상태:</span>
+            <span class="ml-2 px-2 py-1 rounded text-xs <%= store_status_class(@store.status) %>">
+              <%= @store.status %>
+            </span>
+          </div>
+          <div>
+            <span class="text-gray-400">상품 수:</span>
+            <span class="ml-2 font-semibold"><%= @store.product_count || 0 %></span>
+          </div>
+          <div>
+            <span class="text-gray-400">평균 가격:</span>
+            <span class="ml-2 font-semibold"><%= number_to_currency(@store.average_price || 0, unit: "₩", precision: 0) %></span>
+          </div>
+          <div>
+            <span class="text-gray-400">비즈니스 타입:</span>
+            <span class="ml-2"><%= @store.business_type || "Unknown" %></span>
+          </div>
+        </div>
+      </div>
+      
+      <div class="flex gap-2">
+        <% if @store.status == 'completed' %>
+          <%= button_to "새로고침", refresh_store_path(@store), method: :post,
+              class: "bg-gray-700 hover:bg-gray-600 px-4 py-2 rounded transition" %>
+        <% end %>
+        <%= link_to "상품 분석", "#", 
+            class: "bg-blue-500 hover:bg-blue-600 px-4 py-2 rounded transition" %>
+      </div>
+    </div>
+    
+    <% if @store.scraped_at %>
+      <p class="text-sm text-gray-400 mt-4">
+        마지막 업데이트: <%= @store.scraped_at.strftime("%Y년 %m월 %d일 %H:%M") %>
+      </p>
+    <% end %>
+  </div>
+  
+  <% if @store.status == 'scraping' %>
+    <div class="bg-blue-900 bg-opacity-50 border border-blue-500 rounded-lg p-4 mb-8 text-center">
+      <p class="text-blue-200">스토어 정보를 수집 중입니다...</p>
+      <p class="text-sm text-blue-300 mt-2">잠시 후 페이지를 새로고침해주세요.</p>
+    </div>
+  <% elsif @store.status == 'failed' %>
+    <div class="bg-red-900 bg-opacity-50 border border-red-500 rounded-lg p-4 mb-8">
+      <p class="text-red-200">스토어 정보 수집에 실패했습니다.</p>
+      <p class="text-sm text-red-300 mt-2">다시 시도하거나 URL을 확인해주세요.</p>
+    </div>
+  <% end %>
+  
+  <% if @products.any? %>
+    <h2 class="text-2xl font-bold mb-6">상품 목록</h2>
+    
+    <div class="grid grid-cols-4 gap-4">
+      <% @products.each do |product| %>
+        <div class="bg-gray-800 rounded-lg overflow-hidden hover:bg-gray-750 transition">
+          <% if product.image_url %>
+            <div class="aspect-square bg-gray-700">
+              <%= image_tag product.image_url, 
+                  alt: product.name,
+                  class: "w-full h-full object-cover" %>
+            </div>
+          <% else %>
+            <div class="aspect-square bg-gray-700 flex items-center justify-center">
+              <span class="text-gray-500">No Image</span>
+            </div>
+          <% end %>
+          
+          <div class="p-4">
+            <h3 class="font-semibold mb-2 line-clamp-2">
+              <%= link_to product.name, product.product_url, 
+                  target: "_blank", 
+                  class: "hover:text-blue-400 transition" %>
+            </h3>
+            
+            <p class="text-xl font-bold text-blue-400">
+              <%= number_to_currency(product.price, unit: "₩", precision: 0) %>
+            </p>
+            
+            <p class="text-sm text-gray-400 mt-2">
+              <%= product.category %>
+            </p>
+          </div>
+        </div>
+      <% end %>
+    </div>
+    
+    <div class="mt-8">
+      <%= paginate @products %>
+    </div>
+  <% else %>
+    <div class="bg-gray-800 rounded-lg p-8 text-center">
+      <p class="text-gray-400">아직 수집된 상품이 없습니다.</p>
+    </div>
+  <% end %>
+</div>

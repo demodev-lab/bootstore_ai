@@ -1,0 +1,19 @@
+# Read about fixtures at https://api.rubyonrails.org/classes/ActiveRecord/FixtureSet.html
+
+one:
+  name: MyString
+  url: MyString
+  product_count: 1
+  average_price: 9.99
+  business_type: MyString
+  status: MyString
+  scraped_at: 2025-06-06 21:47:27
+
+two:
+  name: MyString
+  url: MyString
+  product_count: 1
+  average_price: 9.99
+  business_type: MyString
+  status: MyString
+  scraped_at: 2025-06-06 21:47:27
