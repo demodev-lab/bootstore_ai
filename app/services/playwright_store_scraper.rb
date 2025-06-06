@@ -1,0 +1,634 @@
+require 'playwright'
+
+class PlaywrightStoreScraper
+  attr_reader :store_url, :store
+
+  def initialize(store)
+    @store = store
+    @store_url = store.url
+  end
+
+  def scrape
+    Rails.logger.info "🚀 Starting Playwright scraping for store: #{@store_url}"
+    @store.update!(status: 'scraping')
+
+    begin
+      result = perform_scraping
+
+      if result[:success]
+        save_scraped_data(result[:data])
+        @store.update!(
+          status: 'completed',
+          scraped_at: Time.current,
+          error_message: nil
+        )
+        Rails.logger.info "✅ Successfully scraped #{@store.products.count} products"
+        { success: true, data: result[:data] }
+      else
+        handle_scraping_error(result[:error])
+        { success: false, error: result[:error] }
+      end
+
+    rescue => e
+      Rails.logger.error "❌ Scraping failed for #{@store_url}: #{e.message}"
+      Rails.logger.error "Error class: #{e.class.name}"
+      Rails.logger.error "Full backtrace:"
+      e.backtrace.each_with_index do |line, i|
+        Rails.logger.error "  #{i}: #{line}"
+      end
+      handle_scraping_error(e.message)
+      { success: false, error: e.message }
+    end
+  end
+
+  private
+
+  def perform_scraping
+    data = {}
+    
+    executable_path = find_playwright_executable
+    Rails.logger.info "Using Playwright executable: #{executable_path}"
+    
+    Playwright.create(playwright_cli_executable_path: executable_path) do |playwright|
+      # Launch browser in visible mode (not headless)
+      Rails.logger.info "🌐 Launching browser window..."
+      browser = playwright.chromium.launch(
+        headless: false,  # Show browser window
+        args: [
+          '--window-size=1920,1080',
+          '--disable-blink-features=AutomationControlled',
+          '--start-maximized'
+        ]
+      )
+
+      context = browser.new_context(
+        viewport: { width: 1920, height: 1080 },
+        userAgent: 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
+      )
+
+      page = context.new_page
+
+      # Add initial script to show automation
+      page.add_init_script(script: "console.log('🤖 BoostStoreAI Crawler Started!')")
+      
+      # Navigate to store
+      Rails.logger.info "📍 Navigating to: #{@store_url}"
+      page.goto(@store_url, waitUntil: 'networkidle', timeout: 30000)
+
+      # Wait for initial content
+      page.wait_for_timeout(3000)
+      
+      # Show visual indicator on the page
+      page.evaluate(<<-JS)
+        const indicator = document.createElement('div');
+        indicator.innerHTML = '🤖 BoostStoreAI 크롤링 중...';
+        indicator.style.cssText = 'position: fixed; top: 20px; right: 20px; background: #4CAF50; color: white; padding: 10px 20px; border-radius: 5px; font-weight: bold; z-index: 10000; font-size: 14px;';
+        document.body.appendChild(indicator);
+        setTimeout(() => indicator.remove(), 5000);
+      JS
+
+      # Extract store information
+      store_info = extract_store_info(page)
+      
+      # Navigate to products section
+      navigate_to_products(page)
+      
+      # Extract products with dynamic loading
+      products_data = extract_products_with_scroll(page)
+
+      browser.close
+
+      {
+        success: true,
+        data: {
+          store_info: store_info,
+          products: products_data,
+          scraped_at: Time.current
+        }
+      }
+    end
+
+  rescue => e
+    Rails.logger.error "Error in perform_scraping: #{e.message}"
+    Rails.logger.error "Error occurred at: #{e.backtrace.first}"
+    { success: false, error: e.message }
+  end
+
+  def extract_store_info(page)
+    info = {
+      name: @store.name,
+      url: @store.url
+    }
+
+    begin
+      # Get page title
+      title = page.title
+      if title && title.length > 0
+        info[:name] = title.split('|').first&.strip || title.strip
+      end
+
+      # Try to find store name in page
+      store_name_selectors = [
+        'h1[class*="SellerHeaderTitle"]',
+        'span[class*="SellerHeaderTitle"]',
+        'h1[class*="seller"]',
+        'h1[class*="store"]',
+        '.shop_name',
+        'h1'
+      ]
+
+      store_name_selectors.each do |selector|
+        element = page.query_selector(selector)
+        if element && element.text_content.strip.length > 0
+          info[:name] = element.text_content.strip
+          Rails.logger.info "📝 Found store name: #{info[:name]}"
+          break
+        end
+      end
+
+      # Extract description
+      begin
+        meta_desc = page.query_selector('meta[name="description"]')
+        info[:description] = meta_desc.get_attribute('content') if meta_desc
+      rescue
+        # Continue without description
+      end
+
+      # Extract follower count
+      follower_selectors = [
+        'span[class*="FollowerCount"]',
+        '[class*="follower"] em',
+        '[class*="follower"]'
+      ]
+
+      follower_selectors.each do |selector|
+        elements = page.query_selector_all(selector)
+        elements.each do |element|
+          text = element.text_content.strip
+          count_match = text.match(/[\d,]+/)
+          if count_match
+            info[:follower_count] = count_match[0].gsub(',', '').to_i
+            Rails.logger.info "👥 Found follower count: #{info[:follower_count]}"
+            break
+          end
+        end
+        break if info[:follower_count]
+      end
+
+    rescue => e
+      Rails.logger.error "Error extracting store info: #{e.message}"
+    end
+
+    info
+  end
+
+  def navigate_to_products(page)
+    Rails.logger.info "🔍 Looking for products section..."
+    
+    # Try different methods to navigate to products
+    navigation_methods = [
+      # Method 1: Click on "전체상품" link
+      lambda do
+        # Try different product link selectors
+        begin
+          # Try "전체상품" link
+          if page.locator('a:text("전체상품")').count > 0
+            Rails.logger.info "📱 Clicking '전체상품' link"
+            page.locator('a:text("전체상품")').first.click
+            page.wait_for_timeout(3000)
+            return true
+          end
+          
+          # Try category ALL link
+          if page.locator('a[href*="/category/ALL"]').count > 0
+            Rails.logger.info "📱 Clicking category ALL link"
+            page.locator('a[href*="/category/ALL"]').first.click
+            page.wait_for_timeout(3000)
+            return true
+          end
+          
+          # Try "전체보기" link
+          if page.locator('a:text("전체보기")').count > 0
+            Rails.logger.info "📱 Clicking '전체보기' link"
+            page.locator('a:text("전체보기")').first.click
+            page.wait_for_timeout(3000)
+            return true
+          end
+        rescue => e
+          Rails.logger.debug "Product link navigation failed: #{e.message}"
+        end
+        false
+      end,
+      
+      # Method 2: Click on products tab
+      lambda do
+        begin
+          # Try product tab with href
+          if page.locator('a[href*="#prd"]').count > 0
+            Rails.logger.info "📑 Clicking products tab (href)"
+            page.locator('a[href*="#prd"]').first.click
+            page.wait_for_timeout(2000)
+            return true
+          end
+          
+          # Try role="tab" with "상품" text
+          if page.locator('[role="tab"]:text("상품")').count > 0
+            Rails.logger.info "📑 Clicking products tab (role)"
+            page.locator('[role="tab"]:text("상품")').first.click
+            page.wait_for_timeout(2000)
+            return true
+          end
+        rescue => e
+          Rails.logger.debug "Product tab navigation failed: #{e.message}"
+        end
+        false
+      end,
+      
+      # Method 3: Navigate directly to products URL
+      lambda do
+        if @store_url.include?('smartstore.naver.com')
+          store_id = @store_url.split('/').last
+          products_url = "#{@store_url}/category/ALL"
+          Rails.logger.info "🌐 Navigating directly to: #{products_url}"
+          page.goto(products_url, waitUntil: 'networkidle')
+          true
+        end
+      end
+    ]
+
+    # Try each navigation method
+    navigation_methods.each do |method|
+      begin
+        return if method.call
+      rescue => e
+        Rails.logger.debug "Navigation method failed: #{e.message}"
+        next
+      end
+    end
+
+    Rails.logger.info "⚠️ Could not navigate to products page, staying on current page"
+  end
+
+  def extract_products_with_scroll(page)
+    products = []
+    seen_texts = Set.new
+    
+    Rails.logger.info "📜 Starting product extraction with scroll..."
+
+    # Initial scroll to trigger lazy loading
+    5.times do |i|
+      page.evaluate("window.scrollTo(0, document.body.scrollHeight * #{(i + 1) / 5.0})")
+      page.wait_for_timeout(1500)
+      
+      # Extract products after each scroll
+      new_products = extract_visible_products(page, seen_texts)
+      products.concat(new_products)
+      
+      Rails.logger.info "📦 Found #{new_products.size} new products (total: #{products.size})"
+      
+      # Stop if we have enough products
+      break if products.size >= 50
+    end
+
+    # Try to load more products if available
+    begin
+      # Try button version first
+      button_locator = page.locator('button:text("더보기")')
+      if button_locator.count > 0
+        begin
+          if button_locator.first.is_visible?
+            Rails.logger.info "🔄 Found 'Load More' button, clicking..."
+            button_locator.first.click
+            page.wait_for_timeout(2000)
+            
+            # Extract additional products
+            new_products = extract_visible_products(page, seen_texts)
+            products.concat(new_products)
+          end
+        rescue
+          # Skip if visibility check fails
+        end
+      else
+        # Try link version
+        link_locator = page.locator('a:text("더보기")')
+        if link_locator.count > 0
+          begin
+            if link_locator.first.is_visible?
+              Rails.logger.info "🔄 Found 'Load More' link, clicking..."
+              link_locator.first.click
+              page.wait_for_timeout(2000)
+              
+              # Extract additional products
+              new_products = extract_visible_products(page, seen_texts)
+              products.concat(new_products)
+            end
+          rescue
+            # Skip if visibility check fails
+          end
+        end
+      end
+    rescue => e
+      Rails.logger.debug "Load more button error: #{e.message}"
+    end
+
+    Rails.logger.info "✅ Total products extracted: #{products.size}"
+    products
+  end
+
+  def extract_visible_products(page, seen_texts)
+    products = []
+    
+    # Product selectors for Naver Smart Store
+    product_selectors = [
+      'li.xans-record-',  # Common Cafe24/Naver class
+      'li[class*="_2kRKWS"]',  # Product list items
+      'li[class*="basicList"]',
+      'div[class*="prd_info"]',  # Product info containers
+      'ul.prdList > li',  # Product list items
+      'div.item_area',  # Item areas
+      'li'  # Generic list items as fallback
+    ]
+
+    product_selectors.each do |selector|
+      elements = page.query_selector_all(selector)
+      
+      if elements.any?
+        Rails.logger.debug "Found #{elements.size} elements with selector: #{selector}"
+        
+        elements.each do |element|
+          begin
+            # Skip if not visible
+            begin
+              next unless element.is_visible?
+            rescue
+              # If visibility check fails, assume it's visible and continue
+            end
+            
+            text = element.text_content.strip
+            
+            # Skip if we've seen this text before (duplicate)
+            next if seen_texts.include?(text)
+            
+            # Skip if too short or too long
+            next if text.length < 5 || text.length > 3000
+            
+            # More flexible product detection
+            # Check if element contains product-like content
+            has_link = element.query_selector('a[href*="/products/"]')
+            has_image = element.query_selector('img')
+            has_price = text.match?(/\d+[만\ucc9c]?\d*원/) || text.match?(/\d{1,3}(,\d{3})*원/)
+            
+            # Consider it a product if it has at least 2 of: link, image, price, or multi-line text
+            score = 0
+            score += 1 if has_link
+            score += 1 if has_image
+            score += 1 if has_price
+            score += 1 if text.lines.count > 2
+            
+            if score >= 2
+              product_data = extract_single_product(element, text)
+              
+              if product_data && (product_data[:name] || product_data[:price])
+                seen_texts.add(text)
+                products << product_data
+                
+                # Log first few products for debugging
+                if products.size <= 3
+                  Rails.logger.debug "Product #{products.size}: #{product_data[:name]} - ₩#{product_data[:price]}"
+                end
+              end
+            end
+          rescue => e
+            Rails.logger.debug "Error processing element: #{e.message}"
+            next
+          end
+        end
+      end
+    end
+
+    products
+  end
+
+  def extract_single_product(element, text)
+    product = {
+      name: extract_product_name(element, text),
+      price: extract_price(text),
+      discount_rate: extract_discount_rate(text),
+      raw_data: text.truncate(1000),
+      scraped_at: Time.current
+    }
+
+    # Extract image URL
+    begin
+      img = element.query_selector('img')
+      if img
+        product[:image_url] = img.get_attribute('src') || img.get_attribute('data-src')
+      end
+    rescue
+      # Continue without image
+    end
+
+    # Extract product URL
+    begin
+      link = element.query_selector('a')
+      if link
+        href = link.get_attribute('href')
+        product[:product_url] = normalize_url(href) if href
+      end
+    rescue
+      # Continue without URL
+    end
+
+    # Extract review count
+    review_match = text.match(/리뷰\s*(\d+)/) || text.match(/\((\d+)\)/)
+    product[:review_count] = review_match[1].to_i if review_match
+
+    product
+  end
+
+  def extract_product_name(element, text)
+    # Try to find product name in specific elements
+    name_selectors = [
+      'p[class*="name"]',
+      'strong[class*="title"]',
+      'strong[class*="name"]',
+      'span[class*="name"]',
+      'a[class*="link"] strong',
+      'a strong',
+      'strong',
+      'h3',
+      'h4',
+      'p'
+    ]
+
+    name_selectors.each do |selector|
+      name_element = element.query_selector(selector)
+      if name_element && name_element.text_content.strip.length > 0
+        name = name_element.text_content.strip
+        # Skip if it's just a price or percentage
+        unless name.match?(/^\d+[만\ucc9c]?\d*원$/) || name.match?(/^\d+%$/)
+          return name.truncate(255)
+        end
+      end
+    end
+
+    # Fallback: Use first meaningful line
+    lines = text.split("\n").map(&:strip).reject(&:empty?)
+    lines.each do |line|
+      # Skip price-only lines, percentage-only lines, or very short lines
+      unless line.match?(/^\d+[만\ucc9c]?\d*원$/) || line.match?(/^\d+%$/) || line.length < 3
+        return line.truncate(255)
+      end
+    end
+
+    # Last resort: return first line if exists
+    lines.first&.truncate(255)
+  end
+
+  def extract_price(text)
+    # Handle various price formats
+    # 1,234,567원
+    if match = text.match(/(\d{1,3}(?:,\d{3})*)\s*원/)
+      return match[1].gsub(',', '').to_i
+    end
+    
+    # 1234567원
+    if match = text.match(/(\d+)\s*원/)
+      return match[1].to_i
+    end
+    
+    # 123만4567원
+    if match = text.match(/(\d+)\s*만\s*(\d*)\s*원/)
+      man = match[1].to_i * 10000
+      won = match[2].to_i
+      return man + won
+    end
+    
+    0
+  end
+
+  def extract_discount_rate(text)
+    match = text.match(/(\d+)\s*%/)
+    match ? match[1].to_i : 0
+  end
+
+  def normalize_url(url)
+    return nil unless url
+    
+    if url.start_with?('//')
+      "https:#{url}"
+    elsif url.start_with?('/')
+      "https://smartstore.naver.com#{url}"
+    else
+      url
+    end
+  end
+
+  def save_scraped_data(data)
+    # Update store information
+    store_info = data[:store_info]
+    @store.update!(
+      name: store_info[:name] || @store.name,
+      description: store_info[:description],
+      follower_count: store_info[:follower_count] || 0,
+      product_count: data[:products].size,
+      average_price: calculate_average_price(data[:products])
+    )
+
+    # Clear existing products
+    @store.products.destroy_all
+
+    # Save new products
+    saved_count = 0
+    data[:products].each_with_index do |product_data, index|
+      next unless product_data[:name] || product_data[:price]
+
+      # Generate unique URL if missing
+      product_url = product_data[:product_url]
+      if product_url.blank?
+        product_url = "#{@store_url}/product_#{index}_#{Time.current.to_i}"
+      end
+      
+      # Use find_or_initialize_by to handle duplicates
+      product = @store.products.find_or_initialize_by(product_url: product_url)
+      
+      product.assign_attributes(
+        name: product_data[:name] || "상품 #{index + 1}",
+        price: product_data[:price] || 0,
+        discount_rate: product_data[:discount_rate] || 0,
+        review_count: product_data[:review_count] || 0,
+        image_url: product_data[:image_url],
+        raw_data: product_data[:raw_data],
+        scraped_at: Time.current,
+        category: determine_category(product_data[:name])
+      )
+      
+      if product.save
+        saved_count += 1
+      else
+        Rails.logger.warn "Failed to save product: #{product.errors.full_messages.join(', ')}"
+      end
+    end
+
+    Rails.logger.info "💾 Saved #{saved_count} products for store: #{@store.name}"
+  end
+
+  def calculate_average_price(products)
+    prices = products.map { |p| p[:price] }.compact.select { |p| p > 0 }
+    return 0 if prices.empty?
+    (prices.sum.to_f / prices.size).round(0)
+  end
+
+  def determine_category(product_name)
+    return 'General' unless product_name
+
+    categories = {
+      '패션' => %w[옷 의류 셔츠 바지 드레스 스커트 재킷 코트 신발 가방 액세서리],
+      '뷰티' => %w[화장품 스킨케어 메이크업 향수 클렌징 마스크],
+      '생활' => %w[세제 청소 수납 정리 주방 욕실 침구],
+      '식품' => %w[음식 간식 음료 차 커피 쌀 반찬 과일],
+      '전자' => %w[전자 가전 스마트 충전기 케이블 이어폰],
+      '스포츠' => %w[운동 스포츠 헬스 요가 수영 등산],
+      '건강' => %w[건강 영양제 비타민 다이어트 의료]
+    }
+
+    name_lower = product_name.downcase
+
+    categories.each do |category, keywords|
+      return category if keywords.any? { |keyword| name_lower.include?(keyword) }
+    end
+
+    'General'
+  end
+
+  def handle_scraping_error(error_message)
+    @store.update!(
+      status: 'failed',
+      error_message: error_message.truncate(1000),
+      scraped_at: Time.current
+    )
+  end
+  
+  def find_playwright_executable
+    # Try multiple methods to find Playwright
+    paths = [
+      ENV['PLAYWRIGHT_CLI_EXECUTABLE_PATH'],
+      'npx playwright',
+      `which playwright`.strip,
+      '/usr/local/bin/playwright',
+      '/opt/homebrew/bin/playwright',
+      Rails.root.join('node_modules/.bin/playwright').to_s
+    ].compact.reject(&:empty?)
+    
+    # Find the first existing path
+    found_path = paths.find do |path|
+      if path.include?('/')
+        File.exist?(path)
+      else
+        system("which #{path} > /dev/null 2>&1")
+      end
+    end
+    
+    found_path || '/opt/homebrew/bin/playwright'
+  end
+end

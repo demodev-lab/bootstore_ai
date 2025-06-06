@@ -4,7 +4,8 @@ class ScrapingJob < ApplicationJob
   retry_on StandardError, wait: 5.minutes, attempts: 3
   
   def perform(store)
-    scraper = NaverStoreScraper.new(store)
+    # Use Playwright scraper for better dynamic content handling
+    scraper = PlaywrightStoreScraper.new(store)
     result = scraper.scrape
     
     if result[:success]

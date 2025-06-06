@@ -1,17 +1,19 @@
 Rails.application.routes.draw do
+  devise_for :users
   root "dashboard#index"
-  
+
   resources :stores, only: [:index, :show, :create] do
     collection do
       post :scrape
+      post :crawl_store
     end
     member do
       post :refresh
     end
   end
-  
+
   resources :search_filters
-  
+
   namespace :api do
     namespace :v1 do
       resources :stores, only: [:index, :show] do
@@ -20,7 +22,7 @@ Rails.application.routes.draw do
       resources :search_filters, only: [:index, :create, :update, :destroy]
     end
   end
-  
+
   # Define your application routes per the DSL in https://guides.rubyonrails.org/routing.html
 
   # Reveal health status on /up that returns 200 if the app boots with no exceptions, otherwise 500.

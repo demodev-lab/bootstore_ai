@@ -23,68 +23,138 @@
   </head>
 
   <body class="bg-gray-900 text-white">
-    <header class="bg-gradient-to-r from-gray-900 via-gray-800 to-gray-900 border-b border-gray-700/50 shadow-2xl">
-      <div class="container mx-auto px-4 py-4">
-        <div class="flex justify-between items-center">
-          <!-- Logo Section -->
-          <div class="flex items-center group">
-            <div class="flex items-center justify-center w-10 h-10 bg-gradient-to-r from-blue-500 to-purple-600 rounded-lg mr-3 group-hover:scale-110 transition-all duration-300">
-              <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path>
-              </svg>
+    <% if user_signed_in? %>
+      <header class="bg-gradient-to-r from-gray-900 via-gray-800 to-gray-900 border-b border-gray-700/50 shadow-2xl">
+        <div class="container mx-auto px-4 py-4">
+          <div class="flex justify-between items-center">
+            <!-- Logo Section -->
+            <div class="flex items-center group">
+              <div class="flex items-center justify-center w-10 h-10 bg-gradient-to-r from-blue-500 to-purple-600 rounded-lg mr-3 group-hover:scale-110 transition-all duration-300">
+                <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path>
+                </svg>
+              </div>
+              <h1 class="text-2xl font-bold">
+                <%= link_to "Boost Store AI", root_path, class: "bg-gradient-to-r from-blue-400 to-purple-400 bg-clip-text text-transparent hover:from-purple-400 hover:to-pink-400 transition-all duration-300" %>
+              </h1>
             </div>
-            <h1 class="text-2xl font-bold">
-              <%= link_to "Boost Store AI", root_path, class: "bg-gradient-to-r from-blue-400 to-purple-400 bg-clip-text text-transparent hover:from-purple-400 hover:to-pink-400 transition-all duration-300" %>
-            </h1>
+
+            <!-- Navigation -->
+            <nav class="hidden md:flex items-center gap-8 text-sm">
+              <%= link_to root_path, class: "flex items-center px-3 py-2 rounded-lg bg-blue-500/20 text-blue-400 border border-blue-500/30 hover:bg-blue-500/30 transition-all duration-300" do %>
+                <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"></path>
+                </svg>
+                홈
+              <% end %>
+
+              <%= link_to "#", class: "flex items-center px-3 py-2 rounded-lg text-gray-400 hover:text-white hover:bg-gray-700/50 transition-all duration-300" do %>
+                <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path>
+                </svg>
+                마켓 벤치마킹
+              <% end %>
+
+              <%= link_to "#", class: "flex items-center px-3 py-2 rounded-lg text-gray-400 hover:text-white hover:bg-gray-700/50 transition-all duration-300" do %>
+                <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"></path>
+                </svg>
+                AI 상품소싱
+              <% end %>
+
+              <%= link_to stores_path, class: "flex items-center px-4 py-2 rounded-lg bg-gradient-to-r from-green-500 to-blue-600 hover:from-green-600 hover:to-blue-700 text-white font-semibold transition-all duration-300 transform hover:scale-105 shadow-lg" do %>
+                <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
+                </svg>
+                스토어 정보 수집
+              <% end %>
+
+              <%= link_to "#", class: "flex items-center px-3 py-2 rounded-lg text-gray-400 hover:text-white hover:bg-gray-700/50 transition-all duration-300" do %>
+                <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-5 5v-5zM4 3h7v5H4V3zm0 8h7v5H4v-5zm8-8h7v5h-7V3zm0 8h7v5h-7v-5z"></path>
+                </svg>
+                벤치마킹 소식
+              <% end %>
+            </nav>
+
+            <!-- User Authentication -->
+            <div class="flex items-center gap-4">
+              <div class="flex items-center gap-4">
+                <span class="text-gray-400 text-sm hidden md:block"><%= current_user.email %></span>
+                <%= link_to destroy_user_session_path, method: :delete, class: "flex items-center px-4 py-2 rounded-lg bg-red-500/20 text-red-400 border border-red-500/30 hover:bg-red-500/30 transition-all duration-300" do %>
+                  <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"></path>
+                  </svg>
+                  로그아웃
+                <% end %>
+              </div>
+            </div>
+
+            <!-- Mobile Menu Button -->
+            <button class="md:hidden flex items-center justify-center w-10 h-10 rounded-lg bg-gray-700/50 hover:bg-gray-600/50 transition-all duration-300">
+              <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path>
+              </svg>
+            </button>
           </div>
-
-          <!-- Navigation -->
-          <nav class="hidden md:flex items-center gap-8 text-sm">
-            <%= link_to root_path, class: "flex items-center px-3 py-2 rounded-lg bg-blue-500/20 text-blue-400 border border-blue-500/30 hover:bg-blue-500/30 transition-all duration-300" do %>
-              <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"></path>
-              </svg>
-              홈
-            <% end %>
-
-            <%= link_to "#", class: "flex items-center px-3 py-2 rounded-lg text-gray-400 hover:text-white hover:bg-gray-700/50 transition-all duration-300" do %>
-              <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path>
-              </svg>
-              마켓 벤치마킹
-            <% end %>
-
-            <%= link_to "#", class: "flex items-center px-3 py-2 rounded-lg text-gray-400 hover:text-white hover:bg-gray-700/50 transition-all duration-300" do %>
-              <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"></path>
-              </svg>
-              AI 상품소싱
-            <% end %>
-
-            <%= link_to stores_path, class: "flex items-center px-4 py-2 rounded-lg bg-gradient-to-r from-green-500 to-blue-600 hover:from-green-600 hover:to-blue-700 text-white font-semibold transition-all duration-300 transform hover:scale-105 shadow-lg" do %>
-              <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
-              </svg>
-              스토어 정보 수집
-            <% end %>
-
-            <%= link_to "#", class: "flex items-center px-3 py-2 rounded-lg text-gray-400 hover:text-white hover:bg-gray-700/50 transition-all duration-300" do %>
-              <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-5 5v-5zM4 3h7v5H4V3zm0 8h7v5H4v-5zm8-8h7v5h-7V3zm0 8h7v5h-7v-5z"></path>
-              </svg>
-              벤치마킹 소식
-            <% end %>
-          </nav>
-
-          <!-- Mobile Menu Button -->
-          <button class="md:hidden flex items-center justify-center w-10 h-10 rounded-lg bg-gray-700/50 hover:bg-gray-600/50 transition-all duration-300">
-            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path>
-            </svg>
-          </button>
         </div>
+      </header>
+    <% else %>
+      <!-- 로그인하지 않은 사용자를 위한 간단한 헤더 (로고만 표시) -->
+      <header class="bg-gradient-to-r from-gray-900 via-gray-800 to-gray-900 border-b border-gray-700/50 shadow-2xl">
+        <div class="container mx-auto px-4 py-4">
+          <div class="flex justify-center items-center">
+            <!-- Logo Section (중앙 정렬) -->
+            <div class="flex items-center group">
+              <div class="flex items-center justify-center w-10 h-10 bg-gradient-to-r from-blue-500 to-purple-600 rounded-lg mr-3 group-hover:scale-110 transition-all duration-300">
+                <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path>
+                </svg>
+              </div>
+              <h1 class="text-2xl font-bold">
+                <%= link_to "Boost Store AI", root_path, class: "bg-gradient-to-r from-blue-400 to-purple-400 bg-clip-text text-transparent hover:from-purple-400 hover:to-pink-400 transition-all duration-300" %>
+              </h1>
+            </div>
+          </div>
+        </div>
+      </header>
+    <% end %>
+
+    <% if notice.present? || alert.present? %>
+      <div class="container mx-auto px-4 mt-4">
+        <% if notice.present? %>
+          <div class="bg-green-500/20 border border-green-500/50 text-green-400 px-6 py-4 rounded-lg mb-4 flex items-center justify-between" role="alert">
+            <div class="flex items-center">
+              <svg class="w-5 h-5 mr-3 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"></path>
+              </svg>
+              <span><%= notice %></span>
+            </div>
+            <button type="button" class="text-green-400 hover:text-green-300 transition-colors duration-300" onclick="this.parentElement.style.display='none';">
+              <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+                <path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd"></path>
+              </svg>
+            </button>
+          </div>
+        <% end %>
+
+        <% if alert.present? %>
+          <div class="bg-red-500/20 border border-red-500/50 text-red-400 px-6 py-4 rounded-lg mb-4 flex items-center justify-between" role="alert">
+            <div class="flex items-center">
+              <svg class="w-5 h-5 mr-3 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd"></path>
+              </svg>
+              <span><%= alert %></span>
+            </div>
+            <button type="button" class="text-red-400 hover:text-red-300 transition-colors duration-300" onclick="this.parentElement.style.display='none';">
+              <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+                <path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd"></path>
+              </svg>
+            </button>
+          </div>
+        <% end %>
       </div>
-    </header>
+    <% end %>
 
     <main class="min-h-screen">
       <%= yield %>

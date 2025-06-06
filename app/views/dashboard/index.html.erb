@@ -119,26 +119,20 @@
           <h3 class="text-xl font-semibold text-white">스토어 정보 수집</h3>
         </div>
 
-        <%= form_with url: scrape_stores_path, local: true, class: "space-y-6" do |f| %>
+        <%= form_with url: crawl_store_stores_path, local: true, class: "space-y-6" do |f| %>
           <div>
-            <label class="block text-sm font-medium text-gray-300 mb-3">검색 키워드</label>
-            <%= text_area_tag :keywords, nil,
-                placeholder: "예: 무선 이어폰, 스마트폰 케이스, 블루투스 스피커",
-                rows: 3,
-                class: "w-full bg-gray-700/50 border border-gray-600 rounded-lg px-4 py-3 text-white placeholder-gray-400 resize-none focus:ring-2 focus:ring-green-500 focus:border-transparent transition-all" %>
-          </div>
-
-          <div>
-            <label class="block text-sm font-medium text-gray-300 mb-3">스토어 URL</label>
-            <%= text_area_tag :urls, nil,
-                placeholder: "https://smartstore.naver.com/saramdel
-https://smartstore.naver.com/example",
-                rows: 5,
-                class: "w-full bg-gray-700/50 border border-gray-600 rounded-lg px-4 py-3 text-white placeholder-gray-400 resize-none focus:ring-2 focus:ring-green-500 focus:border-transparent transition-all" %>
+            <label class="block text-sm font-medium text-gray-300 mb-3">스토어 URL (한 개씩 분석)</label>
+            <%= text_field_tag :store_url, nil,
+                placeholder: "https://smartstore.naver.com/theunitstore",
+                class: "w-full bg-gray-700/50 border border-gray-600 rounded-lg px-4 py-3 text-white placeholder-gray-400 focus:ring-2 focus:ring-green-500 focus:border-transparent transition-all" %>
+            <div class="text-xs text-gray-400 mt-2">
+              💡 네이버 스마트스토어 URL을 입력하세요
+            </div>
           </div>
 
           <%= submit_tag "🚀 스토어 정보 수집 시작",
-              class: "w-full bg-gradient-to-r from-green-500 to-blue-600 hover:from-green-600 hover:to-blue-700 text-white font-bold py-4 px-6 rounded-lg transition-all duration-300 transform hover:scale-105 shadow-lg hover:shadow-xl" %>
+              class: "w-full bg-gradient-to-r from-green-500 to-blue-600 hover:from-green-600 hover:to-blue-700 text-white font-bold py-4 px-6 rounded-lg transition-all duration-300 transform hover:scale-105 shadow-lg hover:shadow-xl",
+              data: { disable_with: "🔄 수집 중..." } %>
         <% end %>
       </div>
     </div>

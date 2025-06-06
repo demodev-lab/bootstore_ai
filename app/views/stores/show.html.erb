@@ -3,6 +3,30 @@
     <%= link_to "← 대시보드로 돌아가기", root_path, class: "text-blue-400 hover:text-blue-300 transition" %>
   </div>
   
+  <% if @store.status == 'scraping' %>
+    <div class="bg-blue-900/30 border border-blue-500/50 rounded-lg p-6 mb-6">
+      <div class="flex items-center">
+        <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500 mr-4"></div>
+        <div>
+          <h3 class="text-lg font-bold text-blue-400">🌐 브라우저가 자동으로 열리고 데이터를 수집하고 있습니다!</h3>
+          <p class="text-gray-300 text-sm mt-1">브라우저 창에서 진행 상황을 확인하실 수 있습니다. 잠시만 기다려주세요...</p>
+        </div>
+      </div>
+    </div>
+  <% elsif @store.status == 'failed' && @store.error_message.present? %>
+    <div class="bg-red-900/30 border border-red-500/50 rounded-lg p-6 mb-6">
+      <div class="flex items-start">
+        <svg class="w-6 h-6 text-red-500 mr-3 flex-shrink-0 mt-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+        </svg>
+        <div>
+          <h3 class="text-lg font-bold text-red-400">오류가 발생했습니다</h3>
+          <p class="text-gray-300 text-sm mt-1"><%= @store.error_message %></p>
+        </div>
+      </div>
+    </div>
+  <% end %>
+  
   <div class="bg-gray-800 rounded-lg p-6 mb-8">
     <div class="flex justify-between items-start mb-4">
       <div>

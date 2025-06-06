@@ -1,8 +1,8 @@
 class DashboardController < ApplicationController
   def index
-    @stores = Store.recent.limit(10)
+    @stores = current_user.stores.recent.limit(10)
     @search_filters = SearchFilter.active
-    @total_stores = Store.count
-    @total_products = Product.count
+    @total_stores = current_user.stores.count
+    @total_products = Product.joins(:store).where(stores: { user_id: current_user.id }).count
   end
 end
