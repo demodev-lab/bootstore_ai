@@ -9,6 +9,8 @@ class PlaywrightStoreScraper
     @options = options
     @search_mode = options[:search_mode] || false
     @search_query = options[:search_query]
+    @all_stores = options[:all_stores] || false
+    @filters = options[:filters] || {}
   end
 
   def scrape
@@ -93,15 +95,16 @@ class PlaywrightStoreScraper
       # Wait for initial content
       page.wait_for_timeout(3000)
 
-      # Show visual indicator on the page
-      indicator_text = @search_mode ? "🔍 BoostStoreAI 상품 검색 중..." : "🤖 BoostStoreAI 크롤링 중..."
-      page.evaluate(<<-JS, indicator_text)
+      # Show visual indicator on the page with filter status
+      filter_status = @all_stores ? " (전체 타입)" : (@filters.any? { |_, v| v.present? } ? " (필터 적용)" : "")
+      indicator_text = @search_mode ? "🔍 BoostStoreAI 상품 검색 중#{filter_status}..." : "🤖 BoostStoreAI 크롤링 중#{filter_status}..."
+      page.evaluate("
         const indicator = document.createElement('div');
-        indicator.innerHTML = arguments[0];
+        indicator.innerHTML = '#{indicator_text}';
         indicator.style.cssText = 'position: fixed; top: 20px; right: 20px; background: #4CAF50; color: white; padding: 10px 20px; border-radius: 5px; font-weight: bold; z-index: 10000; font-size: 14px;';
         document.body.appendChild(indicator);
         setTimeout(() => indicator.remove(), 5000);
-      JS
+      ")
 
       if @search_mode
         # For search mode, we're searching within a specific store
@@ -110,7 +113,8 @@ class PlaywrightStoreScraper
         # Extract store info as usual
         store_info = extract_store_info(page)
         store_info[:name] = "#{@search_query} 검색 - #{store_info[:name]}"
-        store_info[:description] = "#{@search_query} 관련 상품"
+        filter_desc = @all_stores ? " (전체 타입)" : (@filters.any? { |_, v| v.present? } ? " (필터 적용)" : "")
+        store_info[:description] = "#{@search_query} 관련 상품#{filter_desc}"
 
         # Navigate to products section
         navigate_to_products(page)
@@ -125,6 +129,11 @@ class PlaywrightStoreScraper
           search_terms.any? { |term| product_text.include?(term) }
         end
 
+        # Apply additional filters unless "all_stores" is selected
+        unless @all_stores
+          products_data = apply_product_filters(products_data)
+        end
+
         Rails.logger.info "🛍️ Found #{products_data.size} products matching '#{@search_query}' out of #{all_products.size} total products"
       else
         # Extract store information
@@ -135,6 +144,11 @@ class PlaywrightStoreScraper
 
         # Extract products with dynamic loading
         products_data = extract_products_with_scroll(page)
+
+        # Apply filters unless "all_stores" is selected
+        unless @all_stores
+          products_data = apply_product_filters(products_data)
+        end
       end
 
       browser.close
@@ -225,6 +239,68 @@ class PlaywrightStoreScraper
 
   def navigate_to_products(page)
     Rails.logger.info "🔍 Looking for products section..."
+
+    # If all_stores option is enabled, try to click "전체" tab first
+    if @all_stores
+      Rails.logger.info "🌟 All stores mode enabled - looking for '전체' tab..."
+      
+      begin
+        # Try to find and click "전체" tab - specific to Naver SmartStore structure
+        all_tab_selectors = [
+          # Naver SmartStore category tabs
+          'a[class*="category"]:text("전체")',
+          'button[class*="category"]:text("전체")',
+          'li[class*="category"]:text("전체") a',
+          'li[class*="category"]:text("전체") button',
+          # Generic tab selectors
+          'button:text("전체")',
+          'a:text("전체")',
+          'li:text("전체") a',
+          'li:text("전체") button',
+          'div[role="tab"]:text("전체")',
+          '[data-tab="전체"]',
+          '[data-category="전체"]',
+          '[data-filter="전체"]',
+          '.tab:text("전체")',
+          '.category:text("전체")',
+          # Broader search for elements containing "전체"
+          '*:text("전체")'
+        ]
+        
+        tab_clicked = false
+        all_tab_selectors.each do |selector|
+          elements = page.locator(selector)
+          if elements.count > 0
+            Rails.logger.info "🎯 Found #{elements.count} '전체' elements with selector: #{selector}"
+            
+            # Try each element until one works
+            elements.all.each_with_index do |element, index|
+              begin
+                if element.is_visible?
+                  Rails.logger.info "👆 Clicking '전체' tab (element #{index + 1})"
+                  element.click
+                  page.wait_for_timeout(3000)
+                  tab_clicked = true
+                  Rails.logger.info "✅ Successfully clicked '전체' tab"
+                  break
+                end
+              rescue => click_error
+                Rails.logger.debug "Click failed for element #{index + 1}: #{click_error.message}"
+                next
+              end
+            end
+            
+            break if tab_clicked
+          end
+        end
+        
+        if !tab_clicked
+          Rails.logger.info "⚠️ Could not find clickable '전체' tab, proceeding with default navigation"
+        end
+      rescue => e
+        Rails.logger.debug "Error clicking '전체' tab: #{e.message}"
+      end
+    end
 
     # Try different methods to navigate to products
     navigation_methods = [
@@ -840,6 +916,30 @@ class PlaywrightStoreScraper
     product[:review_count] = review_match[1].to_i if review_match
 
     product
+  end
+
+  def apply_product_filters(products)
+    return products if @filters.empty?
+
+    filtered_products = products
+
+    # Apply price range filter
+    if @filters[:price_min].present? && @filters[:price_min].to_i > 0
+      min_price = @filters[:price_min].to_i
+      filtered_products = filtered_products.select { |p| p[:price] && p[:price] >= min_price }
+    end
+
+    if @filters[:price_max].present? && @filters[:price_max].to_i > 0
+      max_price = @filters[:price_max].to_i
+      filtered_products = filtered_products.select { |p| p[:price] && p[:price] <= max_price }
+    end
+
+    # Note: min_products filter is applied at the store level in the controller
+    # overseas filter is also applied at the store level
+
+    Rails.logger.info "🔸 Applied filters: #{@filters.inspect} - Products: #{products.size} → #{filtered_products.size}"
+
+    filtered_products
   end
 
   def find_playwright_executable

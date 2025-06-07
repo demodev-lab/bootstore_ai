@@ -3,7 +3,32 @@ class StoresController < ApplicationController
 
   def index
     @stores = current_user.stores.includes(:products)
-    @stores = @stores.by_business_type(params[:business_type]) if params[:business_type].present?
+
+    # Apply filters unless "all_stores" is selected
+    unless params[:all_stores] == "1"
+      # Business type filter
+      @stores = @stores.by_business_type(params[:business_type]) if params[:business_type].present?
+
+      # Overseas filter (from dashboard)
+      if params[:overseas] == "1"
+        @stores = @stores.where(business_type: "overseas")
+      end
+
+      # Minimum products filter
+      if params[:min_products].present? && params[:min_products].to_i > 0
+        @stores = @stores.where("product_count >= ?", params[:min_products].to_i)
+      end
+
+      # Price range filter
+      if params[:price_min].present? && params[:price_min].to_i > 0
+        @stores = @stores.where("average_price >= ?", params[:price_min].to_i)
+      end
+
+      if params[:price_max].present? && params[:price_max].to_i > 0
+        @stores = @stores.where("average_price <= ?", params[:price_max].to_i)
+      end
+    end
+
     @stores = @stores.page(params[:page])
   end
 
@@ -69,8 +94,17 @@ class StoresController < ApplicationController
         store.save!
       end
 
-      # 백그라운드에서 크롤링 실행
-      ScrapingJob.perform_later(store)
+      # 백그라운드에서 크롤링 실행 - 필터 파라미터 전달
+      scraping_options = {
+        all_stores: params[:all_stores] == "1",
+        filters: {
+          overseas: params[:overseas],
+          min_products: params[:min_products],
+          price_min: params[:price_min],
+          price_max: params[:price_max]
+        }
+      }
+      ScrapingJob.perform_later(store, scraping_options)
 
       redirect_to store_path(store), notice: "🚀 브라우저가 자동으로 열리고 스토어 정보를 수집합니다! 브라우저 창에서 진행 상황을 확인하실 수 있습니다."
 
@@ -111,8 +145,19 @@ class StoresController < ApplicationController
         store.save!
       end
 
-      # 백그라운드에서 크롤링 실행 - 검색 키워드와 함께
-      ScrapingJob.perform_later(store, search_mode: true, search_query: product_name)
+      # 백그라운드에서 크롤링 실행 - 검색 키워드와 필터 파라미터 함께
+      scraping_options = {
+        search_mode: true,
+        search_query: product_name,
+        all_stores: params[:all_stores] == "1",
+        filters: {
+          overseas: params[:overseas],
+          min_products: params[:min_products],
+          price_min: params[:price_min],
+          price_max: params[:price_max]
+        }
+      }
+      ScrapingJob.perform_later(store, scraping_options)
 
       redirect_to store_path(store), notice: "🔍 '#{product_name}' 관련 상품을 #{relevant_stores.size}개 스토어에서 검색합니다!"
 
