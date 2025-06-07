@@ -116,24 +116,73 @@
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
             </svg>
           </div>
-          <h3 class="text-xl font-semibold text-white">스토어 정보 수집</h3>
+          <h3 class="text-xl font-semibold text-white">상품 정보 수집</h3>
         </div>
 
-        <%= form_with url: crawl_store_stores_path, local: true, class: "space-y-6" do |f| %>
-          <div>
-            <label class="block text-sm font-medium text-gray-300 mb-3">스토어 URL (한 개씩 분석)</label>
-            <%= text_field_tag :store_url, nil,
-                placeholder: "https://smartstore.naver.com/theunitstore",
-                class: "w-full bg-gray-700/50 border border-gray-600 rounded-lg px-4 py-3 text-white placeholder-gray-400 focus:ring-2 focus:ring-green-500 focus:border-transparent transition-all" %>
-            <div class="text-xs text-gray-400 mt-2">
-              💡 네이버 스마트스토어 URL을 입력하세요
-            </div>
+        <!-- 크롤링 타입 선택 탭 -->
+        <div class="mb-6">
+          <div class="flex bg-gray-700/30 rounded-lg p-1" role="tablist">
+            <button type="button" class="crawl-tab active-tab flex-1 py-2 px-4 rounded-md text-sm font-medium transition-all duration-200" data-tab="store">
+              🏪 스토어별 수집
+            </button>
+            <button type="button" class="crawl-tab flex-1 py-2 px-4 rounded-md text-sm font-medium transition-all duration-200" data-tab="product">
+              🛍️ 상품별 수집
+            </button>
           </div>
+        </div>
 
-          <%= submit_tag "🚀 스토어 정보 수집 시작",
-              class: "w-full bg-gradient-to-r from-green-500 to-blue-600 hover:from-green-600 hover:to-blue-700 text-white font-bold py-4 px-6 rounded-lg transition-all duration-300 transform hover:scale-105 shadow-lg hover:shadow-xl",
-              data: { disable_with: "🔄 수집 중..." } %>
-        <% end %>
+        <!-- 스토어 URL 수집 폼 -->
+        <div id="store-tab-content" class="tab-content">
+          <%= form_with url: crawl_store_stores_path, local: true, class: "space-y-6" do |f| %>
+            <div>
+              <label class="block text-sm font-medium text-gray-300 mb-3">스토어 URL</label>
+              <%= text_field_tag :store_url, nil,
+                  placeholder: "https://smartstore.naver.com/theunitstore",
+                  class: "w-full bg-gray-700/50 border border-gray-600 rounded-lg px-4 py-3 text-white placeholder-gray-400 focus:ring-2 focus:ring-green-500 focus:border-transparent transition-all" %>
+              <div class="text-xs text-gray-400 mt-2">
+                💡 네이버 스마트스토어 URL을 입력하세요
+              </div>
+            </div>
+
+            <%= submit_tag "🚀 스토어 정보 수집 시작",
+                class: "w-full bg-gradient-to-r from-green-500 to-blue-600 hover:from-green-600 hover:to-blue-700 text-white font-bold py-4 px-6 rounded-lg transition-all duration-300 transform hover:scale-105 shadow-lg hover:shadow-xl",
+                data: { disable_with: "🔄 수집 중..." } %>
+          <% end %>
+        </div>
+
+        <!-- 상품명 수집 폼 -->
+        <div id="product-tab-content" class="tab-content hidden">
+          <%= form_with url: search_products_stores_path, local: true, class: "space-y-6" do |f| %>
+            <div>
+              <label class="block text-sm font-medium text-gray-300 mb-3">상품명 검색</label>
+              <%= text_field_tag :product_name, nil,
+                  placeholder: "예: 아이폰 케이스, 무선이어폰, 패딩 등",
+                  class: "w-full bg-gray-700/50 border border-gray-600 rounded-lg px-4 py-3 text-white placeholder-gray-400 focus:ring-2 focus:ring-green-500 focus:border-transparent transition-all" %>
+              <div class="text-xs text-gray-400 mt-2">
+                💡 찾고자 하는 상품명을 입력하세요
+              </div>
+            </div>
+
+            <div>
+              <label class="block text-sm font-medium text-gray-300 mb-3">수집 개수</label>
+              <%= select_tag :limit,
+                  options_for_select([
+                    ['상위 10개', 10],
+                    ['상위 20개', 20],
+                    ['상위 50개', 50],
+                    ['상위 100개', 100]
+                  ], 20),
+                  class: "w-full bg-gray-700/50 border border-gray-600 rounded-lg px-4 py-3 text-white focus:ring-2 focus:ring-green-500 focus:border-transparent transition-all" %>
+              <div class="text-xs text-gray-400 mt-2">
+                📊 검색 결과에서 수집할 상품 개수를 선택하세요
+              </div>
+            </div>
+
+            <%= submit_tag "🛍️ 상품 정보 수집 시작",
+                class: "w-full bg-gradient-to-r from-purple-500 to-pink-600 hover:from-purple-600 hover:to-pink-700 text-white font-bold py-4 px-6 rounded-lg transition-all duration-300 transform hover:scale-105 shadow-lg hover:shadow-xl",
+                data: { disable_with: "🔄 수집 중..." } %>
+          <% end %>
+        </div>
       </div>
     </div>
 
@@ -231,3 +280,55 @@
     </div>
   </div>
 </div>
+
+<style>
+.crawl-tab {
+  color: #9ca3af;
+  background: transparent;
+}
+
+.crawl-tab.active-tab {
+  color: #ffffff;
+  background: linear-gradient(to right, #10b981, #3b82f6);
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+}
+
+.crawl-tab:hover:not(.active-tab) {
+  color: #d1d5db;
+  background: rgba(75, 85, 99, 0.3);
+}
+
+.tab-content {
+  transition: opacity 0.3s ease-in-out;
+}
+</style>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+  const tabs = document.querySelectorAll('.crawl-tab');
+  const tabContents = document.querySelectorAll('.tab-content');
+
+  tabs.forEach(tab => {
+    tab.addEventListener('click', function() {
+      const targetTab = this.getAttribute('data-tab');
+
+      // Remove active class from all tabs
+      tabs.forEach(t => t.classList.remove('active-tab'));
+
+      // Add active class to clicked tab
+      this.classList.add('active-tab');
+
+      // Hide all tab contents
+      tabContents.forEach(content => {
+        content.classList.add('hidden');
+      });
+
+      // Show target tab content
+      const targetContent = document.getElementById(targetTab + '-tab-content');
+      if (targetContent) {
+        targetContent.classList.remove('hidden');
+      }
+    });
+  });
+});
+</script>
