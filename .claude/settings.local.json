@@ -1,0 +1,11 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(bundle check:*)",
+      "Bash(rails:*)",
+      "Bash(bundle exec rubocop:*)",
+      "Bash(ls:*)"
+    ],
+    "deny": []
+  }
+}

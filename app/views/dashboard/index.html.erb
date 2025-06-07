@@ -67,7 +67,20 @@
 
         <%= form_with url: stores_path, method: :get, local: true, class: "space-y-6" do |f| %>
           <div class="space-y-4">
+            <!-- All stores checkbox -->
             <div>
+              <div class="bg-blue-600/20 border border-blue-500/30 rounded-lg p-4 mb-4">
+                <label class="flex items-center group cursor-pointer">
+                  <%= check_box_tag 'all_stores', '1', params[:all_stores], 
+                      class: "w-4 h-4 text-blue-500 bg-gray-600 border-gray-500 rounded focus:ring-blue-500 focus:ring-2",
+                      data: { all_stores_toggle: true } %>
+                  <span class="ml-3 text-blue-300 font-semibold group-hover:text-blue-200 transition-colors">전체 스토어 타입 수집</span>
+                </label>
+                <p class="text-xs text-gray-400 mt-2 ml-7">✅ 선택시 모든 타입의 스토어에서 데이터를 수집합니다</p>
+              </div>
+            </div>
+
+            <div id="filter-options" class="<%= 'opacity-50 pointer-events-none' if params[:all_stores] == '1' %>">
               <label class="block text-sm font-medium text-gray-300 mb-3">입점 형태</label>
               <div class="bg-gray-700/50 rounded-lg p-4">
                 <label class="flex items-center group cursor-pointer">
@@ -77,30 +90,31 @@
               </div>
             </div>
 
-            <div>
-              <label class="block text-sm font-medium text-gray-300 mb-3">최소 상품수 필터</label>
-              <div class="flex items-center gap-3 bg-gray-700/50 rounded-lg p-4">
-                <%= number_field_tag 'min_products', params[:min_products] || 100,
-                    class: "bg-gray-600 border border-gray-500 rounded-lg px-4 py-2 w-24 text-center text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent" %>
-                <span class="text-gray-300">개 이상</span>
+              <div>
+                <label class="block text-sm font-medium text-gray-300 mb-3">최소 상품수 필터</label>
+                <div class="flex items-center gap-3 bg-gray-700/50 rounded-lg p-4">
+                  <%= number_field_tag 'min_products', params[:min_products] || 100,
+                      class: "bg-gray-600 border border-gray-500 rounded-lg px-4 py-2 w-24 text-center text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent" %>
+                  <span class="text-gray-300">개 이상</span>
+                </div>
               </div>
-            </div>
 
-            <div>
-              <label class="block text-sm font-medium text-gray-300 mb-3">판매가 범위</label>
-              <div class="bg-gray-700/50 rounded-lg p-4 space-y-3">
-                <%= number_field_tag 'price_min', params[:price_min] || 0,
-                    placeholder: "최소 가격",
-                    class: "w-full bg-gray-600 border border-gray-500 rounded-lg px-4 py-2 text-white placeholder-gray-400 focus:ring-2 focus:ring-blue-500 focus:border-transparent" %>
-                <div class="text-center text-gray-400">~</div>
-                <%= number_field_tag 'price_max', params[:price_max] || 0,
-                    placeholder: "최대 가격",
-                    class: "w-full bg-gray-600 border border-gray-500 rounded-lg px-4 py-2 text-white placeholder-gray-400 focus:ring-2 focus:ring-blue-500 focus:border-transparent" %>
+              <div>
+                <label class="block text-sm font-medium text-gray-300 mb-3">판매가 범위</label>
+                <div class="bg-gray-700/50 rounded-lg p-4 space-y-3">
+                  <%= number_field_tag 'price_min', params[:price_min] || 0,
+                      placeholder: "최소 가격",
+                      class: "w-full bg-gray-600 border border-gray-500 rounded-lg px-4 py-2 text-white placeholder-gray-400 focus:ring-2 focus:ring-blue-500 focus:border-transparent" %>
+                  <div class="text-center text-gray-400">~</div>
+                  <%= number_field_tag 'price_max', params[:price_max] || 0,
+                      placeholder: "최대 가격",
+                      class: "w-full bg-gray-600 border border-gray-500 rounded-lg px-4 py-2 text-white placeholder-gray-400 focus:ring-2 focus:ring-blue-500 focus:border-transparent" %>
+                </div>
               </div>
             </div>
           </div>
 
-          <button type="button" class="w-full bg-gradient-to-r from-gray-600 to-gray-700 hover:from-gray-500 hover:to-gray-600 text-white font-semibold py-3 px-4 rounded-lg transition-all duration-300 transform hover:scale-105">
+          <button type="button" id="reset-filters" class="w-full bg-gradient-to-r from-gray-600 to-gray-700 hover:from-gray-500 hover:to-gray-600 text-white font-semibold py-3 px-4 rounded-lg transition-all duration-300 transform hover:scale-105">
             필터 초기화
           </button>
         <% end %>
@@ -134,6 +148,8 @@
         <!-- 스토어 URL 수집 폼 -->
         <div id="store-tab-content" class="tab-content">
           <%= form_with url: crawl_store_stores_path, local: true, class: "space-y-6" do |f| %>
+            <%= hidden_field_tag :all_stores, params[:all_stores] %>
+            <%= hidden_field_tag :overseas, params[:overseas] %>
             <div>
               <label class="block text-sm font-medium text-gray-300 mb-3">스토어 URL</label>
               <%= text_field_tag :store_url, nil,
@@ -141,6 +157,15 @@
                   class: "w-full bg-gray-700/50 border border-gray-600 rounded-lg px-4 py-3 text-white placeholder-gray-400 focus:ring-2 focus:ring-green-500 focus:border-transparent transition-all" %>
               <div class="text-xs text-gray-400 mt-2">
                 💡 네이버 스마트스토어 URL을 입력하세요
+                <% if params[:all_stores] == '1' %>
+                  <div class="text-blue-400 font-semibold mt-1">
+                    🌟 전체 스토어 타입에서 수집됩니다
+                  </div>
+                <% elsif params[:overseas] == '1' %>
+                  <div class="text-green-400 font-semibold mt-1">
+                    🌍 해외직구마켓 타입에서 수집됩니다
+                  </div>
+                <% end %>
               </div>
             </div>
 
@@ -330,5 +355,65 @@ document.addEventListener('DOMContentLoaded', function() {
       }
     });
   });
+
+  // Handle "All stores" checkbox toggle
+  const allStoresCheckbox = document.querySelector('[data-all-stores-toggle]');
+  const filterOptions = document.getElementById('filter-options');
+  
+  if (allStoresCheckbox && filterOptions) {
+    allStoresCheckbox.addEventListener('change', function() {
+      if (this.checked) {
+        filterOptions.classList.add('opacity-50', 'pointer-events-none');
+        // Disable all inputs within filter options
+        filterOptions.querySelectorAll('input').forEach(input => {
+          input.disabled = true;
+        });
+      } else {
+        filterOptions.classList.remove('opacity-50', 'pointer-events-none');
+        // Enable all inputs within filter options
+        filterOptions.querySelectorAll('input').forEach(input => {
+          input.disabled = false;
+        });
+      }
+    });
+
+    // Set initial state if checkbox is already checked
+    if (allStoresCheckbox.checked) {
+      filterOptions.classList.add('opacity-50', 'pointer-events-none');
+      filterOptions.querySelectorAll('input').forEach(input => {
+        input.disabled = true;
+      });
+    }
+  }
+
+  // Handle reset filters button
+  const resetButton = document.getElementById('reset-filters');
+  if (resetButton) {
+    resetButton.addEventListener('click', function() {
+      // Clear all checkboxes
+      document.querySelectorAll('input[type="checkbox"]').forEach(checkbox => {
+        checkbox.checked = false;
+      });
+      
+      // Clear all number inputs
+      document.querySelectorAll('input[type="number"]').forEach(input => {
+        input.value = input.defaultValue || '';
+      });
+      
+      // Re-enable filter options
+      if (filterOptions) {
+        filterOptions.classList.remove('opacity-50', 'pointer-events-none');
+        filterOptions.querySelectorAll('input').forEach(input => {
+          input.disabled = false;
+        });
+      }
+      
+      // Submit the form to refresh without filters
+      const form = this.closest('form');
+      if (form) {
+        form.submit();
+      }
+    });
+  }
 });
 </script>
