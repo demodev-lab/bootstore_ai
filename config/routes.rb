@@ -6,6 +6,7 @@ Rails.application.routes.draw do
     collection do
       post :scrape
       post :crawl_store
+      post :search_products
     end
     member do
       post :refresh
