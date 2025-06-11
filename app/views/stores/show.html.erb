@@ -1,38 +1,38 @@
-<div class="container mx-auto px-4 py-8">
+<div class="container px-4 py-8 mx-auto">
   <div class="mb-8">
     <%= link_to "← 대시보드로 돌아가기", root_path, class: "text-blue-400 hover:text-blue-300 transition" %>
   </div>
-  
+
   <% if @store.status == 'scraping' %>
-    <div class="bg-blue-900/30 border border-blue-500/50 rounded-lg p-6 mb-6">
+    <div class="p-6 mb-6 border rounded-lg bg-blue-900/30 border-blue-500/50">
       <div class="flex items-center">
-        <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500 mr-4"></div>
+        <div class="w-8 h-8 mr-4 border-b-2 border-blue-500 rounded-full animate-spin"></div>
         <div>
           <h3 class="text-lg font-bold text-blue-400">🌐 브라우저가 자동으로 열리고 데이터를 수집하고 있습니다!</h3>
-          <p class="text-gray-300 text-sm mt-1">브라우저 창에서 진행 상황을 확인하실 수 있습니다. 잠시만 기다려주세요...</p>
+          <p class="mt-1 text-sm text-gray-300">브라우저 창에서 진행 상황을 확인하실 수 있습니다. 잠시만 기다려주세요...</p>
         </div>
       </div>
     </div>
   <% elsif @store.status == 'failed' && @store.error_message.present? %>
-    <div class="bg-red-900/30 border border-red-500/50 rounded-lg p-6 mb-6">
+    <div class="p-6 mb-6 border rounded-lg bg-red-900/30 border-red-500/50">
       <div class="flex items-start">
-        <svg class="w-6 h-6 text-red-500 mr-3 flex-shrink-0 mt-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <svg class="flex-shrink-0 w-6 h-6 mt-1 mr-3 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
         </svg>
         <div>
-          <h3 class="text-lg font-bold text-red-400">오류가 발생했습니다</h3>
-          <p class="text-gray-300 text-sm mt-1"><%= @store.error_message %></p>
+          <h3 class="text-lg font-bold text-red-400">에러가 발생했습니다</h3>
+          <p class="mt-1 text-sm text-gray-300"><%= @store.error_message %></p>
         </div>
       </div>
     </div>
   <% end %>
-  
-  <div class="bg-gray-800 rounded-lg p-6 mb-8">
-    <div class="flex justify-between items-start mb-4">
+
+  <div class="p-6 mb-8 bg-gray-800 rounded-lg">
+    <div class="flex items-start justify-between mb-4">
       <div>
-        <h1 class="text-3xl font-bold mb-2"><%= @store.name || "Loading..." %></h1>
-        <p class="text-gray-400 mb-4"><%= @store.url %></p>
-        
+        <h1 class="mb-2 text-3xl font-bold"><%= @store.name || "Loading..." %></h1>
+        <p class="mb-4 text-gray-400"><%= @store.url %></p>
+
         <div class="flex gap-6 text-sm">
           <div>
             <span class="text-gray-400">상태:</span>
@@ -54,78 +54,78 @@
           </div>
         </div>
       </div>
-      
+
       <div class="flex gap-2">
         <% if @store.status == 'completed' %>
           <%= button_to "새로고침", refresh_store_path(@store), method: :post,
               class: "bg-gray-700 hover:bg-gray-600 px-4 py-2 rounded transition" %>
         <% end %>
-        <%= link_to "상품 분석", "#", 
+        <%= link_to "상품 분석", "#",
             class: "bg-blue-500 hover:bg-blue-600 px-4 py-2 rounded transition" %>
       </div>
     </div>
-    
+
     <% if @store.scraped_at %>
-      <p class="text-sm text-gray-400 mt-4">
+      <p class="mt-4 text-sm text-gray-400">
         마지막 업데이트: <%= @store.scraped_at.strftime("%Y년 %m월 %d일 %H:%M") %>
       </p>
     <% end %>
   </div>
-  
+
   <% if @store.status == 'scraping' %>
-    <div class="bg-blue-900 bg-opacity-50 border border-blue-500 rounded-lg p-4 mb-8 text-center">
+    <div class="p-4 mb-8 text-center bg-blue-900 bg-opacity-50 border border-blue-500 rounded-lg">
       <p class="text-blue-200">스토어 정보를 수집 중입니다...</p>
-      <p class="text-sm text-blue-300 mt-2">잠시 후 페이지를 새로고침해주세요.</p>
+      <p class="mt-2 text-sm text-blue-300">잠시 후 페이지를 새로고침해주세요.</p>
     </div>
   <% elsif @store.status == 'failed' %>
-    <div class="bg-red-900 bg-opacity-50 border border-red-500 rounded-lg p-4 mb-8">
+    <div class="p-4 mb-8 bg-red-900 bg-opacity-50 border border-red-500 rounded-lg">
       <p class="text-red-200">스토어 정보 수집에 실패했습니다.</p>
-      <p class="text-sm text-red-300 mt-2">다시 시도하거나 URL을 확인해주세요.</p>
+      <p class="mt-2 text-sm text-red-300">다시 시도하거나 URL을 확인해주세요.</p>
     </div>
   <% end %>
-  
+
   <% if @products.any? %>
-    <h2 class="text-2xl font-bold mb-6">상품 목록</h2>
-    
+    <h2 class="mb-6 text-2xl font-bold">상품 목록</h2>
+
     <div class="grid grid-cols-4 gap-4">
       <% @products.each do |product| %>
-        <div class="bg-gray-800 rounded-lg overflow-hidden hover:bg-gray-750 transition">
+        <div class="overflow-hidden transition bg-gray-800 rounded-lg hover:bg-gray-750">
           <% if product.image_url %>
-            <div class="aspect-square bg-gray-700">
-              <%= image_tag product.image_url, 
+            <div class="bg-gray-700 aspect-square">
+              <%= image_tag product.image_url,
                   alt: product.name,
                   class: "w-full h-full object-cover" %>
             </div>
           <% else %>
-            <div class="aspect-square bg-gray-700 flex items-center justify-center">
+            <div class="flex items-center justify-center bg-gray-700 aspect-square">
               <span class="text-gray-500">No Image</span>
             </div>
           <% end %>
-          
+
           <div class="p-4">
-            <h3 class="font-semibold mb-2 line-clamp-2">
-              <%= link_to product.name, product.product_url, 
-                  target: "_blank", 
+            <h3 class="mb-2 font-semibold line-clamp-2">
+              <%= link_to product.name, product.product_url,
+                  target: "_blank",
                   class: "hover:text-blue-400 transition" %>
             </h3>
-            
+
             <p class="text-xl font-bold text-blue-400">
               <%= number_to_currency(product.price, unit: "₩", precision: 0) %>
             </p>
-            
-            <p class="text-sm text-gray-400 mt-2">
+
+            <p class="mt-2 text-sm text-gray-400">
               <%= product.category %>
             </p>
           </div>
         </div>
       <% end %>
     </div>
-    
+
     <div class="mt-8">
       <%= paginate @products %>
     </div>
   <% else %>
-    <div class="bg-gray-800 rounded-lg p-8 text-center">
+    <div class="p-8 text-center bg-gray-800 rounded-lg">
       <p class="text-gray-400">아직 수집된 상품이 없습니다.</p>
     </div>
   <% end %>
